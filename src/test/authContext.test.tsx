@@ -114,4 +114,48 @@ describe('AuthContext', () => {
       expect(localStorage.getItem('auth_session')).toBeNull();
     });
   });
+
+  describe('loginWithCredentials normalizeUser', () => {
+    it('builds user.name from firstName and lastName when name is absent', async () => {
+      const rawApiResponse = {
+        accessToken: 'tok',
+        refreshToken: 'ref',
+        user: {
+          id: '2',
+          email: 'jane@example.com',
+          firstName: 'Jane',
+          lastName: 'Doe',
+          role: 'school_admin' as const,
+          createdAt: new Date(),
+        },
+      };
+      vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(rawApiResponse),
+      } as Response);
+
+      const result = await authApi.loginWithCredentials('jane@example.com', 'pass');
+      expect(result.user.name).toBe('Jane Doe');
+    });
+
+    it('falls back to email when neither name nor firstName/lastName is present', async () => {
+      const rawApiResponse = {
+        accessToken: 'tok',
+        refreshToken: 'ref',
+        user: {
+          id: '3',
+          email: 'anon@example.com',
+          role: 'tutor_centre_admin' as const,
+          createdAt: new Date(),
+        },
+      };
+      vi.spyOn(global, 'fetch').mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve(rawApiResponse),
+      } as Response);
+
+      const result = await authApi.loginWithCredentials('anon@example.com', 'pass');
+      expect(result.user.name).toBe('anon@example.com');
+    });
+  });
 });
