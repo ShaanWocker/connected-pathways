@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
+import { loginWithCredentials } from '@/lib/authApi';
+import { ApiError } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -12,61 +14,68 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo users for different roles
-const DEMO_USERS: Record<string, User> = {
-  'super@neurobridge.edu': {
-    id: '1',
-    email: 'super@neurobridge.edu',
-    name: 'Sarah Mitchell',
-    role: 'super_admin',
-    createdAt: new Date('2024-01-01'),
-    lastLoginAt: new Date(),
-  },
-  'school@oakwood.edu': {
-    id: '2',
-    email: 'school@oakwood.edu',
-    name: 'James Peterson',
-    role: 'school_admin',
-    institutionId: 'inst-1',
-    createdAt: new Date('2024-02-15'),
-    lastLoginAt: new Date(),
-  },
-  'tutor@brighthorizons.edu': {
-    id: '3',
-    email: 'tutor@brighthorizons.edu',
-    name: 'Dr. Emily Chen',
-    role: 'tutor_centre_admin',
-    institutionId: 'inst-2',
-    createdAt: new Date('2024-03-10'),
-    lastLoginAt: new Date(),
-  },
-};
+const SESSION_KEY = 'auth_session';
+
+interface StoredSession {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+function loadSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    return raw ? (JSON.parse(raw) as StoredSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSession(session: StoredSession): void {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+function clearSession(): void {
+  localStorage.removeItem(SESSION_KEY);
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => loadSession()?.user ?? null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Hydrate session on mount (handles page refresh)
+  useEffect(() => {
+    const session = loadSession();
+    if (session) {
+      setUser(session.user);
+    }
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    const demoUser = DEMO_USERS[email.toLowerCase()];
-    
-    if (demoUser && password === 'demo123') {
-      setUser({ ...demoUser, lastLoginAt: new Date() });
+    try {
+      const { accessToken, refreshToken, user: loggedInUser } = await loginWithCredentials(email, password);
+      saveSession({ accessToken, refreshToken, user: loggedInUser });
+      setUser(loggedInUser);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403 && err.code === 'INVITE_REQUIRED') {
+        setError('This is an invite-only platform. Your account has not been activated yet. Please contact your administrator.');
+      } else if (err instanceof ApiError && err.status === 401) {
+        setError('Invalid email or password.');
+      } else {
+        setError('Unable to sign in. Please try again later.');
+      }
+      throw err;
+    } finally {
       setIsLoading(false);
-    } else {
-      setError('Invalid email or password. Try demo accounts with password: demo123');
-      setIsLoading(false);
-      throw new Error('Invalid credentials');
     }
   }, []);
 
   const logout = useCallback(() => {
+    clearSession();
     setUser(null);
   }, []);
 
