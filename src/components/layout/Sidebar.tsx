@@ -75,6 +75,13 @@ export function Sidebar() {
     (item) => !item.roles || (user && item.roles.includes(user.role))
   );
 
+  const displayName = user?.name ?? user?.email ?? 'User';
+  const initials = displayName
+    .split(' ')
+    .map((n) => n[0])
+    .join('');
+  const roleLabel = user?.role?.replace('_', ' ') ?? 'Pending';
+
   return (
     <aside className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar text-sidebar-foreground">
       <div className="flex h-full flex-col">
@@ -117,17 +124,14 @@ export function Sidebar() {
         <div className="border-t border-sidebar-border p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sidebar-accent text-sm font-semibold text-sidebar-primary">
-              {user?.name
-                .split(' ')
-                .map((n) => n[0])
-                .join('')}
+              {initials}
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="truncate text-sm font-medium text-sidebar-foreground">
-                {user?.name}
+                {displayName}
               </p>
               <p className="truncate text-xs text-sidebar-foreground/60">
-                {user?.role.replace('_', ' ')}
+                {roleLabel}
               </p>
             </div>
           </div>
