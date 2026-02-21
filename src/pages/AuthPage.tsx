@@ -47,12 +47,6 @@ export default function AuthPage() {
     }
   };
 
-  const demoAccounts = [
-    { email: 'super@neurobridge.edu', role: 'Super Admin' },
-    { email: 'school@oakwood.edu', role: 'School Admin' },
-    { email: 'tutor@brighthorizons.edu', role: 'Tutor Centre Admin' },
-  ];
-
   return (
     <div className="flex min-h-screen">
       {/* Left Panel - Branding */}
@@ -174,27 +168,6 @@ export default function AuthPage() {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
-
-          {/* Demo Accounts */}
-          <div className="mt-8 rounded-lg border border-border bg-muted/50 p-4">
-            <p className="mb-3 text-sm font-medium text-foreground">Demo Accounts</p>
-            <p className="mb-3 text-xs text-muted-foreground">Password: demo123</p>
-            <div className="space-y-2">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.email}
-                  onClick={() => {
-                    setEmail(account.email);
-                    setPassword('demo123');
-                  }}
-                  className="flex w-full items-center justify-between rounded-md border border-border bg-card px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
-                >
-                  <span className="font-medium text-foreground">{account.role}</span>
-                  <span className="text-muted-foreground">{account.email}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             This is an invite-only platform. Contact your administrator for access.
